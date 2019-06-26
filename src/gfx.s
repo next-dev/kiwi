@@ -217,4 +217,15 @@ L2_DrawRect:
 ;; This will run through the sprite table and update state
 
 UpdateSprites:
+        ; Input:
+        ;       IX = List of sprite data in the form of:
+        ;               Offset  Size    Description
+        ;               0       1       Number of sprites
+        ;               1       5*N     Sprite info
+        ;       Where sprite info is:
+        ;               Offset  Size    Description
+        ;               0       2       Address of sprite class data
+        ;               2       1       Animation index
+        ;               3       1       Frame # within animaton
+        ;               4       1       Mirror in X direction
                 ret

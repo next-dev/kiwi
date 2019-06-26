@@ -21,11 +21,6 @@ KiwiGfx:        INCBIN  "data/kiwi.nim",4               ; 16-bit width, height f
 
 KiwiSprite:
                 dw      KiwiGfx                         ; Graphics data
-                db      4                               ; Number of frames
-                db      24                              ; Height of each frame
-
-                db      0                               ; Frame # of idle
-                db      1,2,1,3                         ; Frames of walk cycle
 
 Sprites:        db      1                               ; # of sprites
 
