@@ -15,16 +15,24 @@
 
                 INCLUDE "src/gfx.s"
                 INCLUDE "src/memory.s"
+                INCLUDE "src/z80n.s"
 
 KiwiPal:        INCBIN  "data/kiwi.nip",6               ; 9 16-bit colours, followed by transparency index
 KiwiGfx:        INCBIN  "data/kiwi.nim",4               ; 16-bit width, height followed by pixels
 
+;;----------------------------------------------------------------------------------------------------------------------
+;; Sprite classes
+
+SpriteClasses:  db      1
 KiwiSprite:
-                dw      KiwiGfx                         ; Graphics data
+                dw      KiwiGfx                         ; SPRITES 0 (Idle), 1 (Walk1), 2 (Walk2)
+
+;;----------------------------------------------------------------------------------------------------------------------
+;; Sprites
 
 Sprites:        db      1                               ; # of sprites
 
-                dw      KiwiSprite                      ; Sprite type
+                dw      0                               ; Sprite type
                 db      0, 0, 0                         ; Animation, Frame #, mirror X
 
 
@@ -48,6 +56,10 @@ Init:
 
                 ; Initialise L2
                 call    InitL2
+
+                ; Initialise sprites
+                ld      hl,SpriteClasses
+                call    LoadSprites
 
                 ret
 

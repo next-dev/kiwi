@@ -2,15 +2,6 @@
 ;; Graphics library
 ;;----------------------------------------------------------------------------------------------------------------------
 
-SPRITECLASS_Nim                 equ     0
-SPRITECLASS_NumFrames           equ     2
-SPRITECLASS_HeightFrame         equ     3
-
-SPRITE_Class                    equ     0
-SPRITE_Animation                equ     2
-SPRITE_FrameNum                 equ     3
-SPRITE_Mirror                   equ     4
-
 ;;----------------------------------------------------------------------------------------------------------------------
 ;;----------------------------------------------------------------------------------------------------------------------
 ;; Palette routines
@@ -46,7 +37,7 @@ SelectPalette:
                 ld      a,(LastPaletteSelect)
                 and     %11110001
                 or      d
-                nextreg $43,a
+                nextreg NR_EULA_CTRL,a
                 ld      (LastPaletteSelect),a
                 pop     de
                 ret
@@ -67,10 +58,10 @@ LoadPalette:
                 ld      a,(LastPaletteSelect)
                 and     %10001111
                 or      d
-                nextreg $43,a
+                nextreg NR_EULA_CTRL,a
                 ld      (LastPaletteSelect),a
                 ld      a,e
-                nextreg $40,a
+                nextreg NR_PALETTE_IDX,a
 
                 ld      b,(hl)          ; B = number of colours
                 inc     hl
@@ -82,10 +73,10 @@ LoadPalette:
                 ; 9-bit loading
                 inc     hl
 .l1             ld      a,(hl)
-                nextreg $44,a
+                nextreg NR_EULA_PAL,a
                 inc     hl
                 ld      a,(hl)
-                nextreg $44,a
+                nextreg NR_EULA_PAL,a
                 inc     hl
                 djnz    .l1
                 jr      .end
@@ -93,7 +84,7 @@ LoadPalette:
                 ; 8-bit loading
 .bits8          inc     hl
 .l2             ld      a,(hl)
-                nextreg $41,a
+                nextreg NR_PALETTE_VAL,a
                 inc     hl
                 djnz    .l2
 
@@ -109,8 +100,8 @@ LoadPalette:
 
 InitL2:
                 di
-                nextreg $12,8           ; Set first page of L2 to page 16 (16-21)
-                nextreg $13,11          ; Set first page of Shadow L2 to page 22 (22-27)
+                nextreg NR_L2_PAGE,8    ; Set first page of L2 to page 16 (16-21)
+                nextreg NR_L2S_PAGE,11  ; Set first page of Shadow L2 to page 22 (22-27)
 
                 ld      bc,0
                 ld      de,$00c0
@@ -118,11 +109,11 @@ InitL2:
                 call    L2_DrawRect
 
                 ; Show the final image
-                ld      bc,$123b
+                ld      bc,IO_LAYER2
                 ld      a,%00000010
                 out     (c),a
-                nextreg $50,$ff
-                nextreg $51,$ff
+                nextreg NR_MMU0,$ff
+                nextreg NR_MMU1,$ff
 
                 ei
                 ret
@@ -152,9 +143,9 @@ CalcL2Address:
                 swapnib                         ; 0000PP00
                 srl     a                       ; 00000PP0
                 add     a,L2_BASEPAGE           ; Add base page
-                nextreg $50,a
+                nextreg NR_MMU0,a
                 inc     a
-                nextreg $51,a
+                nextreg NR_MMU1,a
                 inc     a
                 ld      (L2Page),a
 
@@ -198,9 +189,9 @@ L2_DrawRect:
                 cp      L2_LASTPAGE
                 jr      z,.end
 
-                nextreg $50,a
+                nextreg NR_MMU0,a
                 inc     a
-                nextreg $51,a
+                nextreg NR_MMU1,a
                 inc     a
                 ld      (L2Page),a
                 ld      h,0                     ; Reset HL back to 0
@@ -210,6 +201,70 @@ L2_DrawRect:
                 jr      nz,.line                ; More lines?  Then keep going?
 
 .end            ret
+
+
+;;----------------------------------------------------------------------------------------------------------------------
+;;----------------------------------------------------------------------------------------------------------------------
+;; SPRITE ROUTINES
+;;----------------------------------------------------------------------------------------------------------------------
+;;----------------------------------------------------------------------------------------------------------------------
+
+;;----------------------------------------------------------------------------------------------------------------------
+;; LoadSprites
+;; Loads the sprite patterns for 16x24 sprites placed vertically in a nim
+
+SpriteNum       db      0
+
+LoadSprites:
+        ; Input
+        ;       HL = Sprite class table
+        ;               Offset  Size    Description
+        ;               0       1       Number of patters
+        ;
+                ld      b,(ix+0)                ; B = number of images
+                xor     a
+                ld      (SpriteNum),a           ; Sprite number
+
+.sprite         push    bc
+
+                push    hl
+                ldhl                            ; HL = sprite data
+                inc     hl
+                inc     hl
+                ld      e,(hl)                  ; C = height
+                inc     hl
+                inc     hl                      ; HL = pixel data
+
+                ; Choose the sprite pattern index
+.next           ld      a,(SpriteNum)
+                ld      bc,IO_SPRITE
+                out     (c),a
+                inc     a
+                ld      (SpriteNum),a
+
+                ; Write the sprite pattern
+                bchilo  $80,IO_SPRITE_PATT      ; B = number of bytes to upload, C = upload port
+                otir                            ; Upload first 16 rows
+                ld      b,$40                   ; Upload next 8 rows
+                otir
+                ld      b,$40
+                xor     a
+.l1             out     (c),a
+                djnz    .l1                     ; Fill the rest of the sprite with transparent colour
+
+                ld      a,e
+                sub     24
+                ld      e,a
+                jr      nz,.next
+
+                pop     hl                      ; Restore pointer to sprite table
+                inc     hl
+                inc     hl                      ; Next pointer
+                pop     bc
+                djnz    .sprite                 ; Next sprite graphic
+
+                ret
+
 
 
 ;;----------------------------------------------------------------------------------------------------------------------
