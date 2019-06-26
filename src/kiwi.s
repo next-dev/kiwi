@@ -13,9 +13,9 @@
 ;;----------------------------------------------------------------------------------------------------------------------
 ;; Graphics system
 
+                INCLUDE "src/z80n.s"
                 INCLUDE "src/gfx.s"
                 INCLUDE "src/memory.s"
-                INCLUDE "src/z80n.s"
 
 KiwiPal:        INCBIN  "data/kiwi.nip",6               ; 9 16-bit colours, followed by transparency index
 KiwiGfx:        INCBIN  "data/kiwi.nim",4               ; 16-bit width, height followed by pixels
